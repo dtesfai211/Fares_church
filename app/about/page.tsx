@@ -4,6 +4,34 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { BookOpen, Heart, Users, Clock, ChevronRight } from "lucide-react"
+import { client } from "@/sanity/lib/client"
+import { urlFor } from "@/sanity/lib/image"
+
+// Define interface for leadership team members
+interface TeamMember {
+  _id: string;
+  name: string;
+  position: string;
+  bio: string;
+  imageUrl?: string;
+  slug?: {
+    current: string;
+  };
+}
+
+// Fetch leadership team from Sanity
+async function getLeadershipTeam(): Promise<TeamMember[]> {
+  return client.fetch(`
+    *[_type == "author" && isLeadershipTeam == true] | order(leadershipOrder asc) {
+      _id,
+      name,
+      position,
+      bio,
+      "imageUrl": image.asset->url,
+      slug
+    }
+  `)
+}
 
 // Hard-coded about us sections
 const aboutSections = [
@@ -58,52 +86,6 @@ const aboutSections = [
   },
 ]
 
-// Hard-coded team members
-const teamMembers = [
-  {
-    id: 1,
-    name: "Pastor David Johnson",
-    position: "Senior Pastor",
-    bio: "Pastor David has been leading Fares Church for over 15 years. With a background in theology and counseling, he brings depth to his teaching and compassion to his pastoral care. He and his wife Sarah have three children and enjoy hiking in their spare time.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 2,
-    name: "Rebecca Martinez",
-    position: "Worship Director",
-    bio: "Rebecca has been leading worship for over a decade, with a passion for creating meaningful worship experiences that draw people closer to God. She holds a degree in Music Ministry and has recorded several worship albums.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 3,
-    name: "Michael Thompson",
-    position: "Youth Pastor",
-    bio: "Pastor Michael brings energy and innovation to our youth ministry. With a background in education and a heart for teenagers, he creates programs that engage young people and help them build a solid foundation of faith during these formative years.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 4,
-    name: "Dr. Emily Chen",
-    position: "Children's Ministry Director",
-    bio: "Dr. Emily combines her background in child development with her love for Jesus to create a vibrant children's ministry. She believes in partnering with parents to nurture faith from an early age through engaging, age-appropriate programs.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 5,
-    name: "James Wilson",
-    position: "Outreach Coordinator",
-    bio: "James coordinates our community service initiatives and mission trips. His background in non-profit management helps him identify meaningful ways for our church to serve locally and globally, putting our faith into action.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-  {
-    id: 6,
-    name: "Lisa Rodriguez",
-    position: "Administrative Director",
-    bio: "Lisa keeps our church operations running smoothly, managing facilities, finances, and communications. Her organizational skills and attention to detail ensure that our ministries have the support they need to thrive.",
-    image_url: "/placeholder.svg?height=400&width=300",
-  },
-]
-
 // Service times
 const serviceTimes = [
   {
@@ -123,7 +105,10 @@ const serviceTimes = [
   },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  // Fetch leadership team members from Sanity
+  const leadershipTeam = await getLeadershipTeam()
+  
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
@@ -149,7 +134,7 @@ export default function AboutPage() {
             <div className="relative">
               <div className="relative h-[400px] rounded-lg overflow-hidden shadow-xl">
                 <Image
-                  src="/placeholder.svg?height=800&width=600"
+                  src="/about.jpg"
                   alt="Church Community"
                   fill
                   className="object-cover"
@@ -243,21 +228,28 @@ export default function AboutPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
+            {leadershipTeam.map((member: TeamMember) => (
               <Card
-                key={member.id}
+                key={member._id}
                 className="overflow-hidden shadow-md transition-transform duration-300 hover:-translate-y-2"
               >
                 <div className="relative h-64">
-                  <Image src={member.image_url || "/placeholder.svg"} alt={member.name} fill className="object-cover" />
+                  <Image 
+                    src={member.imageUrl || "/placeholder.jpg"} 
+                    alt={member.name} 
+                    fill 
+                    className="object-cover" 
+                  />
                 </div>
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold mb-1">{member.name}</h3>
                   <p className="text-secondary font-medium mb-4">{member.position}</p>
                   <p className="text-gray-700 dark:text-gray-300 line-clamp-3">{member.bio}</p>
-                  <Button variant="link" className="p-0 mt-2 h-auto font-medium text-primary flex items-center">
-                    Read More <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
+                  {member.slug && (
+                    <Button variant="link" className="p-0 mt-2 h-auto font-medium text-primary flex items-center">
+                      Read More <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

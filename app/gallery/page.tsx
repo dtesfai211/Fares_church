@@ -1,116 +1,92 @@
+import { Metadata } from "next"
 import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { sql } from "@/lib/db"
+import { getAllGalleries, getGalleryCategories, Gallery, SanityDocument } from "@/lib/sanity.client"
 
-async function getGalleryImages() {
-  try {
-    const images = await sql`SELECT * FROM gallery_images ORDER BY created_at DESC`
-    return images
-  } catch (error) {
-    console.error("Error fetching gallery images:", error)
-    return []
-  }
-}
-
-async function getGalleryCategories() {
-  try {
-    const categories = await sql`SELECT DISTINCT category FROM gallery_images WHERE category IS NOT NULL`
-    return categories.map((cat) => cat.category)
-  } catch (error) {
-    console.error("Error fetching gallery categories:", error)
-    return []
-  }
+export const metadata: Metadata = {
+  title: "Gallery | Fares Church",
+  description: "View photos from our church events, services, and community.",
 }
 
 export default async function GalleryPage() {
-  const images = await getGalleryImages()
-  const categories = await getGalleryCategories()
-
-  // Group images by category
-  const imagesByCategory = images.reduce((acc, image) => {
-    const category = image.category || "Uncategorized"
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(image)
-    return acc
-  }, {})
+  const [galleries, categories] = await Promise.all([
+    getAllGalleries(),
+    getGalleryCategories(),
+  ])
 
   return (
     <main className="min-h-screen flex flex-col">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24">
-        <div className="absolute inset-0 z-0">
-          <Image src="/placeholder.svg?height=600&width=1920" alt="Gallery" fill className="object-cover" />
-          <div className="absolute inset-0 hero-gradient"></div>
-        </div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center text-white">
+      <section className="pt-32 pb-16 md:pt-40 md:pb-24 bg-gradient-to-r from-primary/90 to-primary text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Gallery</h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto">
-            Browse through moments captured at our church events and activities.
+          <p className="text-xl max-w-3xl mx-auto">
+            Moments captured from our church community, services, and special events.
           </p>
         </div>
       </section>
 
-      {/* Gallery */}
       <section className="py-16 bg-white dark:bg-gray-950">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex justify-center mb-8">
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
+          {categories.length > 0 && (
+            <div className="mb-8">
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button variant="outline" className="mb-2" asChild>
+                  <Link href="/gallery">All</Link>
+                </Button>
                 {categories.map((category) => (
-                  <TabsTrigger key={category} value={category}>
-                    {category}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {images.map((image) => (
-                  <div key={image.id} className="relative aspect-square rounded-lg overflow-hidden gallery-item">
-                    <Image
-                      src={image.image_url || "/placeholder.svg?height=500&width=500"}
-                      alt={image.title}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/70 opacity-0 transition-opacity duration-300 flex flex-col justify-end p-4 gallery-overlay">
-                      <h3 className="text-white font-bold text-lg">{image.title}</h3>
-                      {image.description && <p className="text-white/90 text-sm">{image.description}</p>}
-                    </div>
-                  </div>
+                  <Button key={category} variant="outline" className="mb-2" asChild>
+                    <Link href={`/gallery/category/${encodeURIComponent(category)}`}>{category}</Link>
+                  </Button>
                 ))}
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {categories.map((category) => (
-              <TabsContent key={category} value={category}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {imagesByCategory[category]?.map((image) => (
-                    <div key={image.id} className="relative aspect-square rounded-lg overflow-hidden gallery-item">
-                      <Image
-                        src={image.image_url || "/placeholder.svg?height=500&width=500"}
-                        alt={image.title}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/70 opacity-0 transition-opacity duration-300 flex flex-col justify-end p-4 gallery-overlay">
-                        <h3 className="text-white font-bold text-lg">{image.title}</h3>
-                        {image.description && <p className="text-white/90 text-sm">{image.description}</p>}
+          {galleries.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {galleries.map((gallery) => (
+                <Link key={gallery._id} href={`/gallery/${gallery.slug.current}`} className="block">
+                  <div className="group relative overflow-hidden rounded-lg shadow-md">
+                    {/* Show the first image as the gallery cover */}
+                    {gallery.images?.[0]?.url ? (
+                      <div className="aspect-[4/3] relative">
+                        <Image 
+                          src={gallery.images[0].url}
+                          alt={gallery.title}
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-70 group-hover:opacity-90 transition-opacity" />
+                        <div className="absolute bottom-0 w-full p-4 text-white">
+                          <h3 className="text-xl font-bold mb-1">{gallery.title}</h3>
+                          <div className="flex items-center justify-between">
+                            <span>{gallery.images.length} photos</span>
+                            {gallery.category && (
+                              <span className="bg-white/20 px-2 py-1 text-sm rounded">{gallery.category}</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+                    ) : (
+                      <div className="aspect-[4/3] bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                        <span>No images</span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <h3 className="text-2xl font-semibold mb-4">No galleries found</h3>
+              <p className="mb-8">Check back later for photo galleries.</p>
+            </div>
+          )}
         </div>
       </section>
 
