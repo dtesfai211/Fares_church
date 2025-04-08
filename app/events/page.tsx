@@ -9,21 +9,27 @@ import { Footer } from "@/components/footer"
 import { getAllEvents, SanityDocument } from "@/lib/sanity.client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ReloadIcon } from "@/components/ui/icons"
+import { ViewAllPastEventsButton } from "@/components/view-all-past-events-button"
 
-export const metadata: Metadata = {
-  title: "Events | Fares Church",
-  description: "Join us for our upcoming events, services and community gatherings",
-}
+// Client component for the reload button
+import { useState } from "react"
 
-interface EventData extends SanityDocument {
-  title: string;
-  slug: { current: string };
-  date?: string;
-  time?: string;
-  location: string;
-  description?: string;
-  imageUrl?: string;
-}
+const ReloadButton = () => {
+  const handleReload = () => {
+    window.location.reload();
+  };
+
+  return (
+    <div className="text-center">
+      <Button 
+        onClick={handleReload}
+        className="inline-flex items-center"
+      >
+        <ReloadIcon className="mr-2 h-4 w-4" /> Try Again
+      </Button>
+    </div>
+  );
+};
 
 export default async function EventsPage() {
   const events = await getAllEvents()
@@ -68,14 +74,7 @@ export default async function EventsPage() {
                   There was a problem loading events, or no events have been scheduled yet.
                 </AlertDescription>
               </Alert>
-              <div className="text-center">
-                <Button 
-                  onClick={() => window.location.reload()}
-                  className="inline-flex items-center"
-                >
-                  <ReloadIcon className="mr-2 h-4 w-4" /> Try Again
-                </Button>
-              </div>
+              <ReloadButton />
             </div>
           ) : (
             <>
@@ -167,7 +166,7 @@ export default async function EventsPage() {
                   </div>
                   {pastEvents.length > 3 && (
                     <div className="text-center mt-8">
-                      <Button variant="outline">View All Past Events</Button>
+                      <ViewAllPastEventsButton count={pastEvents.length} />
                     </div>
                   )}
                 </div>
