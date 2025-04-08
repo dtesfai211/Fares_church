@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { ImageGallery } from "@/components/image-gallery"
 import { getAllGalleries, getGalleryCategories, Gallery, SanityDocument } from "@/lib/sanity.client"
 
 export const metadata: Metadata = {
@@ -48,37 +49,41 @@ export default async function GalleryPage() {
           )}
 
           {galleries.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-16">
               {galleries.map((gallery) => (
-                <Link key={gallery._id} href={`/gallery/${gallery.slug.current}`} className="block">
-                  <div className="group relative overflow-hidden rounded-lg shadow-md">
-                    {/* Show the first image as the gallery cover */}
-                    {gallery.images?.[0]?.url ? (
-                      <div className="aspect-[4/3] relative">
-                        <Image 
-                          src={gallery.images[0].url}
-                          alt={gallery.title}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-70 group-hover:opacity-90 transition-opacity" />
-                        <div className="absolute bottom-0 w-full p-4 text-white">
-                          <h3 className="text-xl font-bold mb-1">{gallery.title}</h3>
-                          <div className="flex items-center justify-between">
-                            <span>{gallery.images.length} photos</span>
-                            {gallery.category && (
-                              <span className="bg-white/20 px-2 py-1 text-sm rounded">{gallery.category}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="aspect-[4/3] bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-                        <span>No images</span>
-                      </div>
+                <div key={gallery._id} className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 shadow-sm">
+                  <div className="mb-8">
+                    <h2 className="text-2xl md:text-3xl font-bold mb-2">{gallery.title}</h2>
+                    {gallery.category && (
+                      <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                        {gallery.category}
+                      </span>
+                    )}
+                    {gallery.description && (
+                      <p className="text-gray-600 dark:text-gray-300 mt-4">{gallery.description}</p>
+                    )}
+                    {gallery.date && (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+                        {new Date(gallery.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
                     )}
                   </div>
-                </Link>
+
+                  {gallery.images && gallery.images.length > 0 ? (
+                    <ImageGallery 
+                      images={gallery.images}
+                      title={gallery.title}
+                    />
+                  ) : (
+                    <div className="text-center py-12 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      <p>No images in this gallery</p>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : (

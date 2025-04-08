@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { BookOpen, Heart, Users, Clock, ChevronRight } from "lucide-react"
 import { client } from "@/sanity/lib/client"
 import { urlFor } from "@/sanity/lib/image"
+import Link from "next/link"
 
 // Define interface for leadership team members
 interface TeamMember {
@@ -246,8 +247,10 @@ export default async function AboutPage() {
                   <p className="text-secondary font-medium mb-4">{member.position}</p>
                   <p className="text-gray-700 dark:text-gray-300 line-clamp-3">{member.bio}</p>
                   {member.slug && (
-                    <Button variant="link" className="p-0 mt-2 h-auto font-medium text-primary flex items-center">
-                      Read More <ChevronRight className="ml-1 h-4 w-4" />
+                    <Button variant="link" className="p-0 mt-2 h-auto font-medium text-primary flex items-center" asChild>
+                      <Link href={`/team/${member.slug.current}`}>
+                        Read More <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
                     </Button>
                   )}
                 </CardContent>

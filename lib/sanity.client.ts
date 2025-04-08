@@ -414,3 +414,46 @@ export async function getGalleryCategories(): Promise<string[]> {
   )
   return [...new Set(categories)].filter(Boolean).map(category => String(category))
 }
+
+// Team member types and queries
+export interface TeamMember extends SanityDocument {
+  name: string;
+  position: string;
+  slug: { current: string };
+  imageUrl?: string;
+  bio?: string;
+  bioContent?: any;
+  email?: string;
+  phone?: string;
+  isLeadershipTeam?: boolean;
+}
+
+export async function getTeamMemberBySlug(slug: string): Promise<TeamMember | null> {
+  return client.fetch(`
+    *[_type == "author" && slug.current == $slug][0] {
+      _id,
+      name,
+      position,
+      "slug": slug.current,
+      "imageUrl": image.asset->url,
+      bio,
+      bioContent,
+      email,
+      phone,
+      isLeadershipTeam
+    }
+  `, { slug })
+}
+
+export async function getAllTeamMembers(): Promise<TeamMember[]> {
+  return client.fetch(`
+    *[_type == "author" && isLeadershipTeam == true] | order(leadershipOrder asc) {
+      _id,
+      name,
+      position,
+      "slug": slug.current,
+      "imageUrl": image.asset->url,
+      bio
+    }
+  `)
+}

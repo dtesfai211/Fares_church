@@ -444,16 +444,8 @@ export default async function Home() {
       {latestSermon && (
         <section className="py-24 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
           {/* Abstract decorative elements */}
-          <div className="absolute top-0 left-0 w-full h-full">
-            <svg className="opacity-10" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="url(#sermon-grad)" />
-            </svg>
-            <defs>
-              <linearGradient id="sermon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#4338ca" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2" />
-              </linearGradient>
-            </defs>
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/20 to-blue-600/10">
+            {/* Removed SVG linear gradient in favor of Tailwind gradient classes */}
           </div>
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
