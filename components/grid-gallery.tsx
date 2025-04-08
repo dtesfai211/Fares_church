@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { X, ChevronLeft, ChevronRight, ZoomIn, CalendarDays, Tag } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, CalendarDays, Tag, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export interface GalleryImage {
@@ -22,16 +24,30 @@ interface GalleryMetadata {
   date?: string;
 }
 
-interface ImageGalleryProps {
+interface GridGalleryProps {
   images: GalleryImage[];
   title?: string;
   metadata?: GalleryMetadata;
+  columns?: number;
+  gap?: number;
 }
 
-export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
+export function GridGallery({ 
+  images, 
+  title, 
+  metadata,
+  columns = 4,
+  gap = 4
+}: GridGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  
+  // Handle hydration issues with SSR
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const openLightbox = (image: GalleryImage) => {
     setSelectedImage(image);
@@ -84,34 +100,59 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
     }
   };
 
+  if (!isClient) return null;
+
+  const gridClasses = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-2 md:grid-cols-2',
+    3: 'grid-cols-2 md:grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5',
+    6: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6',
+  }[columns] || 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
+
+  const gapClasses = {
+    0: 'gap-0',
+    1: 'gap-1',
+    2: 'gap-2',
+    3: 'gap-3',
+    4: 'gap-4',
+    5: 'gap-5',
+    6: 'gap-6',
+    8: 'gap-8',
+  }[gap] || 'gap-4';
+
   return (
     <div className="w-full">
-      {/* Gallery grid - Fixed to ensure 4 images per row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {/* Gallery masonry grid */}
+      <div className={`grid ${gridClasses} ${gapClasses}`}>
         {images.map((image, index) => (
           <div 
             key={image._key || index}
-            className="group relative cursor-pointer aspect-square overflow-hidden rounded-md"
+            className="group relative cursor-pointer overflow-hidden"
             onClick={() => openLightbox(image)}
           >
-            {/* Image thumbnail */}
-            <Image 
-              src={image.url} 
-              alt={image.alt || title || 'Gallery image'} 
-              width={300}
-              height={300}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <ZoomIn className="text-white h-6 w-6" />
-            </div>
+            <AspectRatio ratio={1 / 1}>
+              <Image 
+                src={image.url} 
+                alt={image.alt || title || 'Gallery image'} 
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover transition-all duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
+                <div className="rounded-full bg-white/20 p-3">
+                  <ZoomIn className="text-white h-6 w-6" />
+                </div>
+              </div>
+            </AspectRatio>
           </div>
         ))}
       </div>
       
       {/* Lightbox dialog */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogOverlay className="bg-black/95" />
+        <DialogOverlay className="bg-black/95 backdrop-blur-sm" />
         <DialogContent 
           className="max-w-7xl w-screen border-none bg-transparent shadow-none p-0"
           onKeyDown={handleKeyDown}
@@ -120,12 +161,12 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
             {selectedImage?.caption || title || 'Image preview'}
           </DialogTitle>
           
-          <div className="relative w-full flex flex-col items-center justify-center">
+          <div className="relative w-full min-h-screen flex flex-col items-center justify-center">
             {/* Close button */}
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 z-50 text-white bg-black/30 hover:bg-black/50"
+              className="absolute top-4 right-4 z-50 text-white bg-black/30 hover:bg-black/50 rounded-full"
               onClick={closeLightbox}
             >
               <X className="h-5 w-5" />
@@ -134,7 +175,7 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
             
             {/* Gallery metadata - only shown at the top in the lightbox */}
             {metadata && (
-              <div className="w-full max-w-4xl px-6 py-3 mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between text-white">
+              <div className="w-full max-w-5xl px-6 py-3 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between text-white">
                 <div>
                   <h3 className="text-lg font-semibold">{metadata.title}</h3>
                   {metadata.description && (
@@ -166,7 +207,7 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 z-40 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50"
+                  className="absolute left-4 z-40 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 h-12 w-12 rounded-full"
                   onClick={(e) => {
                     e.stopPropagation();
                     goToPreviousImage();
@@ -179,7 +220,7 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 z-40 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50"
+                  className="absolute right-4 z-40 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 h-12 w-12 rounded-full"
                   onClick={(e) => {
                     e.stopPropagation();
                     goToNextImage();
@@ -196,25 +237,28 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
               <div className="w-full flex items-center justify-center">
                 {loadingImage && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </div>
                 )}
                 <Image
                   src={selectedImage.url}
                   alt={selectedImage.alt || title || 'Enlarged image'}
-                  width={1200}
-                  height={800}
+                  width={1400}
+                  height={900}
                   className={cn(
-                    "max-h-[80vh] max-w-full object-contain transition-opacity",
-                    loadingImage ? "opacity-0" : "opacity-100"
+                    "max-h-[85vh] max-w-full object-contain transition-all rounded-lg shadow-2xl",
+                    loadingImage ? "opacity-0 scale-95" : "opacity-100 scale-100"
                   )}
                   onLoad={handleImageLoad}
                 />
                 
                 {/* Caption - only shown if available */}
                 {selectedImage.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3">
-                    <p className="text-white text-center text-sm">{selectedImage.caption}</p>
+                  <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-white/70" />
+                      <p className="text-white text-sm">{selectedImage.caption}</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -222,7 +266,7 @@ export function ImageGallery({ images, title, metadata }: ImageGalleryProps) {
             
             {/* Image counter */}
             {images.length > 1 && selectedImage && (
-              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/50 px-3 py-1 rounded-full text-white text-xs">
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/60 px-3 py-1 rounded-full text-white text-xs backdrop-blur-sm">
                 {images.findIndex(img => img.url === selectedImage.url) + 1} / {images.length}
               </div>
             )}
